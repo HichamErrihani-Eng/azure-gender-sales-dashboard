@@ -140,6 +140,7 @@ DIVIDE(
     [Total Sales LY]
 ) - 1
 📁 Structure du projet
+
 ```
 azure-gender-sales-dashboard/
 ├── README.md
@@ -155,7 +156,7 @@ azure-gender-sales-dashboard/
 └── docs/
     └── architecture.png
 ```
-🎓 Compétences démontrées
+## 🎓 Compétences démontrées
 Data Architecture : Medallion, Star Schema, ADR
 
 Data Engineering : ADF, Databricks, Synapse, ADLS Gen2
@@ -168,7 +169,7 @@ Business Intelligence : Power BI, DAX, modélisation sémantique
 
 DevOps : Git, versioning, documentation
 
-👤 Auteur
+## 👤 Auteur
 Hicham ERRIHANI
 
 Data Architect | BI & Cloud Data Platform Expert
