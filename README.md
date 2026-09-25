@@ -139,6 +139,8 @@ DIVIDE(
     [Total Sales],
     [Total Sales LY]
 ) - 1
+
+
 📁 Structure du projet
 
 ```
