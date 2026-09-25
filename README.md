@@ -1,37 +1,35 @@
 # 🎯 Gender-Based Sales KPI Dashboard
 
-> End-to-end Data Engineering project on Azure following the **Medallion Architecture (Bronze → Silver → Gold)**, analyzing sales data by customer gender.
+> End-to-end Data Engineering & BI project on Azure — Medallion Architecture (Bronze/Silver/Gold) with ADF, Databricks, Synapse, and Power BI.
 
 [![Azure](https://img.shields.io/badge/Azure-0078D4?style=flat&logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/)
 [![Databricks](https://img.shields.io/badge/Databricks-FF3621?style=flat&logo=databricks&logoColor=white)](https://databricks.com/)
+[![Synapse](https://img.shields.io/badge/Synapse%20Analytics-0078D4?style=flat&logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/en-us/products/synapse-analytics)
 [![Power BI](https://img.shields.io/badge/Power%20BI-F2C811?style=flat&logo=powerbi&logoColor=black)](https://powerbi.microsoft.com/)
 
 ---
 
 ## 📋 Contexte métier
 
-Une entreprise de vente au détail souhaite mieux comprendre le comportement d'achat de ses clients selon leur **genre** afin d'adapter ses campagnes marketing et son catalogue produit.
+Une entreprise de vente au détail souhaite comprendre le comportement d'achat de ses clients selon leur **genre** pour adapter ses campagnes marketing et son catalogue produit.
 
 **Problème** : Les données de ventes sont dispersées dans une base SQL Server on-premise, sans vision consolidée par genre.
 
-**Solution** : Construire un pipeline de données end-to-end sur Azure qui :
-1. Ingère les données brutes depuis SQL Server
-2. Les nettoie et les valide (couche Silver)
-3. Les agrège par genre, année et catégorie (couche Gold)
-4. Expose les résultats via un dashboard Power BI
+**Solution** : Construire un pipeline de données end-to-end sur Azure suivant l'architecture Medallion, avec modélisation dimensionnelle (Star Schema) et exposition via Power BI.
 
 ---
 
 ## 🏗️ Architecture
+
 ```
 ┌─────────────────────┐
 │ SQL Server │ Source on-premise
 │ (AdventureWorks) │
 └──────────┬──────────┘
-│
+│ Self-Hosted Integration Runtime
 ▼
 ┌─────────────────────┐
-│ Azure Data Factory │ Ingestion (Self-Hosted IR)
+│ Azure Data Factory │ Ingestion metadata-driven (ForEach)
 │ pipeline: pl_copy │
 └──────────┬──────────┘
 │
@@ -43,22 +41,58 @@ Une entreprise de vente au détail souhaite mieux comprendre le comportement d'a
 │
 ▼
 ┌─────────────────────┐
-│ Azure Databricks │ Nettoyage + Typage
+│ Azure Databricks │ Nettoyage + Typage + Validation
 │ (Silver layer) │
 └──────────┬──────────┘
 │
 ▼
 ┌─────────────────────┐
-│ Azure Databricks │ Agrégation (par genre)
+│ Azure Databricks │ Agrégation + Star Schema
 │ (Gold layer) │
 └──────────┬──────────┘
 │
 ▼
 ┌─────────────────────┐
-│ Power BI │ Dashboard final
+│ Synapse Serverless │ Exposition SQL (T-SQL)
+│ (SQL Pool) │
+└──────────┬──────────┘
+│
+▼
+┌─────────────────────┐
+│ Power BI │ Dashboard + RLS
 └─────────────────────┘
 
 ```
+
+
+---
+
+## 🏛️ Architecture Decisions (ADR)
+
+### ADR-001 : Pourquoi une architecture Medallion ?
+
+| Aspect | Décision |
+| :--- | :--- |
+| **Contexte** | Données sources hétérogènes, qualité variable |
+| **Décision** | 3 couches : Bronze (raw), Silver (clean), Gold (aggregated) |
+| **Justification** | Séparation des responsabilités, traçabilité, réutilisabilité |
+| **Alternatives rejetées** | ETL monolithique, Data Vault (sur-dimensionné) |
+
+### ADR-002 : Pourquoi ADF pour l'ingestion et Databricks pour la transformation ?
+
+| Aspect | Décision |
+| :--- | :--- |
+| **Décision** | ADF → ingestion, Databricks → transformation |
+| **Justification** | ADF simplifie la connexion on-premise (Self-Hosted IR). Databricks est optimisé pour le traitement distribué (PySpark). |
+| **Alternatives rejetées** | Tout faire dans ADF (limité en transformation), tout faire dans Databricks (plus complexe pour l'ingestion) |
+
+### ADR-003 : Pourquoi Synapse Serverless plutôt que Dedicated Pool ?
+
+| Aspect | Décision |
+| :--- | :--- |
+| **Décision** | Synapse Serverless SQL Pool |
+| **Justification** | Pay-per-query, pas de cluster à provisionner, adapté à un projet portfolio |
+| **Alternatives rejetées** | Dedicated Pool (coût élevé, ~1,20 $/heure) |
 
 ---
 
@@ -67,87 +101,41 @@ Une entreprise de vente au détail souhaite mieux comprendre le comportement d'a
 | Composant | Service Azure | Rôle |
 | :--- | :--- | :--- |
 | **Ingestion** | Azure Data Factory | Pipeline metadata-driven avec ForEach |
-| **Connectivité** | Self-Hosted Integration Runtime | Connexion au SQL Server on-premise |
+| **Connectivité** | Self-Hosted Integration Runtime | Connexion SQL Server on-premise |
 | **Stockage** | ADLS Gen2 | Conteneurs `bronze/`, `silver/`, `gold/` |
-| **Transformation** | Azure Databricks (PySpark) | Nettoyage et agrégation |
-| **Sécurité** | Azure Key Vault | Stockage des secrets et connexions |
+| **Transformation** | Azure Databricks (PySpark) | Nettoyage, typage, agrégation |
+| **Exposition** | Synapse Serverless SQL | Vues T-SQL sur la couche Gold |
+| **Sécurité** | Azure Key Vault | Stockage des secrets |
+| **Gouvernance** | RBAC, Unity Catalog, RLS | Contrôle d'accès |
 | **Visualisation** | Power BI | Dashboard interactif |
-| **Versioning** | Git / GitHub | Suivi du code et de la documentation |
 
 ---
 
-## 📁 Structure du projet
+## 📐 Modélisation dimensionnelle (Gold Layer)
 
-```
-azure-gender-sales-dashboard/
-├── README.md # Ce fichier
-├── LICENSE
-├── .gitignore
-├── sql/
-│ ├── create_adf_user.sql # Création du login SQL pour ADF
-│ └── exploratory_queries.sql # Requêtes d'exploration
-├── notebooks/
-│ ├── README.md
-│ ├── 02_bronze_to_silver.ipynb # Nettoyage Bronze → Silver
-│ └── 03_silver_to_gold.ipynb # Agrégation Silver → Gold
-└── docs/
-└── architecture.png # Schéma d'architecture
-```
+### Star Schema
 
+**Table de faits** : `FactInternetSales`
 
----
+**Dimensions** :
+- `DimCustomer` (Gender, YearlyIncome, Geography)
+- `DimProduct` (Category, Subcategory)
+- `DimDate` (Year, Quarter, Month)
+- `DimGeography` (Country, City)
 
-## 🚀 Résultats
+### Mesures DAX clés
 
-- **Pipeline automatisé** : Ingestion quotidienne depuis SQL Server
-- **Couche Silver** : Données nettoyées, typées et déduplicées
-- **Couche Gold** : Agrégats prêts pour l'analyse
-  - Ventes totales par genre et par année
-  - Ventes par genre et par catégorie de produit
-- **Dashboard Power BI** : Visualisation interactive avec filtres par genre, année et catégorie
+```dax
+Total Sales = SUM(FactInternetSales[SalesAmount])
 
----
+Sales by Gender = 
+CALCULATE(
+    [Total Sales],
+    USERELATIONSHIP(DimCustomer[Gender], DimCustomer[Gender])
+)
 
-## 🔐 Sécurité
-
-- **Aucun mot de passe** n'est stocké dans le code source
-- **Azure Key Vault** stocke tous les secrets (`sql-adf-password`)
-- **ADF Linked Services** utilisent Key Vault pour récupérer les credentials
-- **RBAC** configuré sur les ressources Azure
-
----
-
-## 🎓 Compétences démontrées
-
-- **Data Engineering** : ADF, Databricks, ADLS Gen2, architecture Medallion
-- **Big Data** : PySpark, traitement distribué
-- **Sécurité** : Key Vault, RBAC, gestion des secrets
-- **Modélisation** : Star Schema, dimensions et faits
-- **DevOps** : Git, versioning, documentation
-- **Business Intelligence** : Power BI, DAX
-
----
-
-## 🔮 Améliorations futures
-
-- [ ] Ajouter Azure Synapse Analytics pour la couche de service
-- [ ] Mettre en place des tests unitaires (pytest) sur les transformations
-- [ ] Ajouter Azure Monitor pour la supervision des pipelines
-- [ ] Automatiser le déploiement avec Azure DevOps (CI/CD)
-- [ ] Enrichir le dashboard avec des prédictions ML (churn, segmentation)
-
----
-
-## 👤 Auteur
-
-**Hicham ERRIHANI**
-- Data Engineer / Data Analyst
-- 📧 errihanihicham1@gmail.com
-- 🔗 www.linkedin.com/in/hicham-errihani-815755266
-- 💻 [GitHub](https://github.com/HichamErrihani-Eng)
-
----
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+YoY Growth = 
+DIVIDE(
+    [Total Sales],
+    [Total Sales LY]
+) - 1
