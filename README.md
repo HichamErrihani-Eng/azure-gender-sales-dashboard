@@ -139,44 +139,42 @@ DIVIDE(
     [Total Sales],
     [Total Sales LY]
 ) - 1
-```
-✅ Qualité des données
-Contrôle	Couche	Règle
-Unicité	Bronze	Pas de doublons sur CustomerKey
-Complétude	Silver	Gender non null et dans {M, F}
-Validité	Silver	SalesAmount > 0
-Cohérence	Gold	Somme des ventes par genre = total
-🔐 Sécurité et Gouvernance
-RBAC (Role-Based Access Control)
-adf_user : db_datareader sur AdventureWorksDW2022
-
-databricks_sp : accès aux conteneurs bronze/silver/gold via Unity Catalog
-
-powerbi_user : accès en lecture seule à la couche Gold
-
-Unity Catalog (Databricks)
-Catalogue : gender_sales_catalog
-
-Schémas : bronze, silver, gold
-
-Grants : SELECT sur gold.* pour les analystes
-
-Row-Level Security (Power BI)
-Rôle : RegionManager
-
-Filtre DAX : [Country] = LOOKUPVALUE(...)
-
-Azure Key Vault
-Secret : sql-adf-password (mot de passe SQL pour ADF)
-
-Aucun secret n'est stocké dans le code source
-
-📊 Résultats clés
-Métrique	Valeur
-Ventes totales (dataset complet)	$22.19 M
-Ventes filtrées (via RLS)	$6.90 M
-Nombre de clients	18 484
-Nombre de produits	606
-Période analysée	2010 - 2014
 📁 Structure du projet
 ```
+azure-gender-sales-dashboard/
+├── README.md
+├── LICENSE
+├── .gitignore
+├── sql/
+│   ├── create_adf_user.sql
+│   └── exploratory_queries.sql
+├── notebooks/
+│   ├── README.md
+│   ├── 02_bronze_to_silver.ipynb
+│   └── 03_silver_to_gold.ipynb
+└── docs/
+    └── architecture.png
+```
+🎓 Compétences démontrées
+Data Architecture : Medallion, Star Schema, ADR
+
+Data Engineering : ADF, Databricks, Synapse, ADLS Gen2
+
+Big Data : PySpark, traitement distribué
+
+Sécurité : Key Vault, RBAC, Unity Catalog, RLS
+
+Business Intelligence : Power BI, DAX, modélisation sémantique
+
+DevOps : Git, versioning, documentation
+
+👤 Auteur
+Hicham ERRIHANI
+
+Data Architect | BI & Cloud Data Platform Expert
+
+📧 errihanihicham1@gmail.com
+
+🔗 www.linkedin.com/in/hicham-errihani-815755266
+
+💻 GitHub
