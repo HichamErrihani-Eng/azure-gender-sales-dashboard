@@ -143,7 +143,7 @@ azure-gender-sales-dashboard/
 **Hicham ERRIHANI**
 - Data Engineer / Data Analyst
 - 📧 errihanihicham1@gmail.com
-- 🔗 [LinkedIn](https://www.linkedin.com/in/hicham-errihani)
+- 🔗 www.linkedin.com/in/hicham-errihani-815755266
 - 💻 [GitHub](https://github.com/HichamErrihani-Eng)
 
 ---
