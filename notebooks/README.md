@@ -10,7 +10,7 @@ Ce dossier contient les notebooks Databricks utilisés pour les transformations 
 | `03_silver_to_gold.ipynb` | Agrégation des ventes par genre, année et catégorie (Silver → Gold) | Gold |
 
 ## Architecture Medallion
-'''
+```
 Source (SQL Server)
 │
 ▼
@@ -33,7 +33,7 @@ Source (SQL Server)
 │
 ▼
 Power BI (Dashboard)
-'''
+```
 
 ## Technologies utilisées
 
